@@ -19,38 +19,41 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtService {
 
-	public String generateToken(String username) {
-		Map<String, Object> claims = new HashMap<>();
-		return createToken(claims, username);
-	}
+	// Method to generate a JWT token for a given username
+    public String generateToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        return createToken(claims, username);
+    }
 
-	private String createToken(Map<String, Object> claims, String username) {
-		return Jwts.builder()
-				.setClaims(claims)
-				.setSubject(username)
-				.setIssuedAt(new Date(System.currentTimeMillis()))
-				.setExpiration(new Date(System.currentTimeMillis()+1000*60*60))
-				.signWith(getSecKey(), SignatureAlgorithm.HS256).compact();
-				
-	}
-	
+    // Private method to create a JWT token
+    private String createToken(Map<String, Object> claims, String username) {
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(username)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+                .signWith(getSecKey(), SignatureAlgorithm.HS256).compact();
+    }
 
+    // Private method to get the secret key for signing the JWT
+    private Key getSecKey() {
+        byte[] keybytes = Decoders.BASE64.decode("3273357638792F423F4528482B4D6251655368566D597133743677397A244326");
+        return Keys.hmacShaKeyFor(keybytes);
+    }
 
-	private Key getSecKey() {
-		byte[] keybytes = Decoders.BASE64.decode("3273357638792F423F4528482B4D6251655368566D597133743677397A244326");
-		return Keys.hmacShaKeyFor(keybytes);
-	}
+    // Method to extract the username from a JWT token
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
+    }
 
-	public String extractUsername(String token) {
-		return extractClaim(token, Claims::getSubject);
-	}
-
-	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    // Generic method to extract a claim from a JWT token
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
-	
-	private Claims extractAllClaims(String token) {
+
+    // Private method to extract all claims from a JWT token
+    private Claims extractAllClaims(String token) {
         return Jwts
                 .parserBuilder()
                 .setSigningKey(getSecKey())
@@ -58,18 +61,19 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-	
-	
 
+    // Method to validate a JWT token against a UserDetails object
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        boolean flag = username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
-    
+
+    // Private method to check if a JWT token is expired
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
+
+    // Method to extract the expiration date from a JWT token
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
